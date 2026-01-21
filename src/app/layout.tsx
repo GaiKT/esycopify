@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ModeToggle } from "@/components/mode-toggle";
+import { UserNav } from "@/components/user-nav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,7 +30,27 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="container flex h-14 items-center justify-between px-8">
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold tracking-tight">Esycopify</h1>
+              </div>
+              <div className="flex items-center gap-4">
+                <ModeToggle />
+                <UserNav />
+              </div>
+            </div>
+          </header>
+          <main className="min-h-[calc(100vh-3.5rem)] bg-slate-50/50 dark:bg-slate-950/50 flex flex-col items-center justify-start ">
+            {children}
+          </main>
+        </ThemeProvider>
       </body>
     </html>
   );
