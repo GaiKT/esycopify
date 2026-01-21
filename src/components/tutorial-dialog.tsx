@@ -99,26 +99,9 @@ const TUTORIAL_STEPS = [
   },
 ];
 
-interface TutorialDialogProps {
-  showOnFirstVisit?: boolean;
-}
-
-export function TutorialDialog({
-  showOnFirstVisit = true,
-}: TutorialDialogProps) {
+export function TutorialDialog() {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-
-  // Check if first visit
-  useEffect(() => {
-    if (showOnFirstVisit) {
-      const hasSeenTutorial = localStorage.getItem("esycopify-tutorial-seen");
-      if (!hasSeenTutorial) {
-        setOpen(true);
-        localStorage.setItem("esycopify-tutorial-seen", "true");
-      }
-    }
-  }, [showOnFirstVisit]);
 
   const handleNext = () => {
     if (currentStep < TUTORIAL_STEPS.length - 1) {
@@ -189,7 +172,7 @@ export function TutorialDialog({
                   "w-2 h-2 rounded-full transition-all",
                   index === currentStep
                     ? "bg-purple-500 w-6"
-                    : "bg-slate-300 dark:bg-slate-600 hover:bg-purple-300",
+                    : "bg-slate-300 dark:bg-slate-600 hover:bg-purple-300"
                 )}
               />
             ))}
