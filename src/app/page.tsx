@@ -1,173 +1,138 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useBoardStore } from "@/store/use-board-store"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Plus, Layout, MoreHorizontal, Edit2, Trash2 } from "lucide-react"
-import Link from "next/link"
+import { useEffect, useState } from "react";
+import { useBoardStore } from "@/store/use-board-store";
+import { Button } from "@/components/ui/button";
+import { Palette, Sparkles } from "lucide-react";
+import { ColorPicker } from "@/components/ui/color-picker";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Board } from "@/store/use-board-store"
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { BoardCanvas } from "@/components/board/board-canvas";
+import { cn } from "@/lib/utils";
 
-export default function DashboardPage() {
-  const { boards, addBoard, fetchBoards, deleteBoard, updateBoard, loading } = useBoardStore()
-  const [newBoardTitle, setNewBoardTitle] = useState("")
-  const [open, setOpen] = useState(false)
-  const [openEdit, setOpenEdit] = useState(false)
-  const [boardToEdit, setBoardToEdit] = useState<Board | null>(null)
-  const [editTitle, setEditTitle] = useState("")
-
-  const handleUpdateBoard = () => {
-      if (boardToEdit && editTitle.trim()) {
-          updateBoard(boardToEdit.id, editTitle.trim())
-          setOpenEdit(false)
-          setBoardToEdit(null)
-      }
-  }
+export default function MainPage() {
+  const { activeBoard, fetchOrCreateBoard, updateBoardColor, loading } =
+    useBoardStore();
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    fetchBoards()
-  }, [fetchBoards])
+    setIsMounted(true);
+    fetchOrCreateBoard();
+  }, [fetchOrCreateBoard]);
 
-  const handleCreateBoard = () => {
-    if (newBoardTitle.trim()) {
-      addBoard(newBoardTitle.trim())
-      setNewBoardTitle("")
-      setOpen(false)
-    }
+  // Loading state
+  if (!isMounted || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600"></div>
+            <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-5 w-5 text-purple-500" />
+          </div>
+          <p className="text-muted-foreground text-lg font-medium">
+            กำลังโหลดข้อมูล...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!activeBoard) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600"></div>
+            <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-5 w-5 text-purple-500" />
+          </div>
+          <p className="text-muted-foreground text-lg font-medium">
+            กำลังสร้างกระดานของคุณ...
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="container py-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">กระดานของคุณ</h2>
-          <p className="text-lg text-muted-foreground mt-2">จัดการข้อความเทมเพลตและจัดระเบียบงานของคุณได้ง่ายๆ</p>
+    <div
+      className={cn(
+        "h-full w-full flex flex-col min-h-[calc(100vh-3.5rem)] transition-all duration-300",
+        !activeBoard.color &&
+          "bg-gradient-to-br from-slate-50 via-purple-50/30 to-pink-50/30 dark:from-slate-950 dark:via-purple-950/20 dark:to-pink-950/20",
+      )}
+      style={{ background: activeBoard.color || undefined }}
+    >
+      {/* Header */}
+      <div
+        className={cn(
+          "backdrop-blur-md border-b px-6 py-4 flex items-center justify-between",
+          activeBoard.color
+            ? "bg-white/40 dark:bg-black/20 border-white/30"
+            : "bg-white/70 dark:bg-slate-900/70 border-slate-200 dark:border-slate-800",
+        )}
+      >
+        <div className="flex items-center gap-4">
+          <div>
+            <h2
+              className={cn(
+                "text-2xl font-bold",
+                activeBoard.color
+                  ? "text-slate-800 dark:text-white drop-shadow-sm"
+                  : "",
+              )}
+            >
+              {activeBoard.title}
+            </h2>
+            <p
+              className={cn(
+                "text-sm",
+                activeBoard.color
+                  ? "text-slate-600 dark:text-slate-300"
+                  : "text-muted-foreground",
+              )}
+            >
+              {activeBoard.lists.length} รายการ ·{" "}
+              {activeBoard.lists.reduce((acc, l) => acc + l.cards.length, 0)}{" "}
+              การ์ด
+            </p>
+          </div>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="lg" className="gap-2 text-lg shadow-lg hover:shadow-primary/25 transition-all">
-              <Plus className="h-5 w-5" />
-              สร้างกระดานใหม่
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-2xl">ตั้งชื่อกระดานใหม่</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title" className="text-lg">ชื่อกระดาน</Label>
-                <Input
-                  id="title"
-                  placeholder="เช่น: ตอบแชทลูกค้า, รหัสส่วนลด"
-                  className="text-lg h-12"
-                  value={newBoardTitle}
-                  onChange={(e) => setNewBoardTitle(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleCreateBoard()}
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" size="lg" onClick={() => setOpen(false)}>ยกเลิก</Button>
-              <Button size="lg" onClick={handleCreateBoard}>ยืนยันการสร้าง</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
 
-        <Dialog open={openEdit} onOpenChange={setOpenEdit}>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle className="text-2xl">แก้ไขชื่อกระดาน</DialogTitle>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="edit-title" className="text-lg">ชื่อกระดาน</Label>
-                        <Input
-                            id="edit-title"
-                            className="text-lg h-12"
-                            value={editTitle}
-                            onChange={(e) => setEditTitle(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && handleUpdateBoard()}
-                        />
-                    </div>
-                </div>
-                <div className="flex justify-end gap-3">
-                    <Button variant="outline" size="lg" onClick={() => setOpenEdit(false)}>ยกเลิก</Button>
-                    <Button size="lg" onClick={handleUpdateBoard}>บันทึก</Button>
-                </div>
-            </DialogContent>
-        </Dialog>
+        {/* Color Picker */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className={cn(
+                "rounded-full",
+                activeBoard.color
+                  ? "bg-white/50 hover:bg-white/70 border-white/50 dark:bg-black/30 dark:hover:bg-black/40 dark:border-white/20"
+                  : "",
+              )}
+            >
+              <Palette className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto" align="end">
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm">เปลี่ยนสีพื้นหลัง</h4>
+              <ColorPicker
+                value={activeBoard.color}
+                onChange={(color) => updateBoardColor(activeBoard.id, color)}
+              />
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {boards.length === 0 ? (
-          <div className="col-span-full flex flex-col items-center justify-center p-16 border-2 border-dashed rounded-2xl bg-background/50 backdrop-blur-sm">
-            <Layout className="h-16 w-16 text-muted-foreground mb-6 opacity-50" />
-            <p className="text-2xl font-medium mb-2">ยังไม่มีกระดาน</p>
-            <p className="text-lg text-muted-foreground mb-8">เริ่มสร้างกระดานแรกของคุณเพื่อจัดระเบียบข้อความเทมเพลต</p>
-            <Button variant="outline" size="lg" className="text-lg" onClick={() => setOpen(true)}>สร้างกระดานเลย</Button>
-          </div>
-        ) : (
-          boards.map((board) => (
-            <Link key={board.id} href={`/board/${board.id}`}>
-              <Card className="hover:border-primary transition-colors cursor-pointer group relative">
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur-sm hover:bg-background" onClick={(e) => e.preventDefault()}>
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                             <DropdownMenuItem onClick={(e) => {
-                                 e.preventDefault()
-                                 setBoardToEdit(board)
-                                 setEditTitle(board.title)
-                                 setOpenEdit(true)
-                             }}>
-                                <Edit2 className="h-4 w-4 mr-2" />
-                                แก้ไขชื่อ
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={(e) => {
-                                e.preventDefault()
-                                deleteBoard(board.id)
-                            }}>
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                ลบกระดาน
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-                <CardHeader className="pb-4">
-                  <CardTitle className="group-hover:text-primary transition-colors truncate pr-8">
-                    {board.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    {board.lists.length} รายการ
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
-          ))
-        )}
+      {/* Board Canvas */}
+      <div className="p-6 flex-1 overflow-x-auto">
+        <BoardCanvas board={activeBoard} />
       </div>
     </div>
-  )
+  );
 }

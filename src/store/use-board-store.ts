@@ -8,6 +8,7 @@ export interface Card {
     list_id: string
     content: string
     position: number
+    color?: string
     variables?: Record<string, string>
 }
 
@@ -22,6 +23,7 @@ export interface List {
 export interface Board {
     id: string
     title: string
+    color?: string
     lists: List[]
 }
 
@@ -32,18 +34,21 @@ interface BoardState {
     setBoards: (boards: Board[]) => void
     setActiveBoard: (board: Board | null) => void
     fetchBoards: () => Promise<void>
-    addBoard: (title: string) => Promise<void>
+    fetchOrCreateBoard: () => Promise<Board | null>
+    addBoard: (title: string, color?: string) => Promise<void>
     addList: (boardId: string, title: string) => Promise<void>
-    addCard: (listId: string, content: string) => Promise<void>
+    addCard: (listId: string, content: string, color?: string) => Promise<void>
     reorderLists: (boardId: string, startIndex: number, endIndex: number) => Promise<void>
     reorderCards: (listId: string, startIndex: number, endIndex: number) => Promise<void>
     moveCard: (sourceListId: string, destListId: string, cardId: string, index: number) => Promise<void>
     deleteBoard: (boardId: string) => Promise<void>
-    updateBoard: (boardId: string, title: string) => Promise<void>
+    updateBoard: (boardId: string, title: string, color?: string) => Promise<void>
+    updateBoardColor: (boardId: string, color: string) => Promise<void>
     deleteList: (listId: string) => Promise<void>
     updateList: (listId: string, title: string) => Promise<void>
     deleteCard: (cardId: string) => Promise<void>
-    updateCard: (cardId: string, content: string) => Promise<void>
+    updateCard: (cardId: string, content: string, color?: string) => Promise<void>
+    updateCardColor: (cardId: string, color: string) => Promise<void>
 }
 
 export const useBoardStore = create<BoardState>((set, get) => ({
@@ -80,14 +85,74 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         set({ loading: false })
     },
 
-    addBoard: async (title) => {
+    fetchOrCreateBoard: async () => {
+        if (!supabase) return null
+        set({ loading: true })
+
+        const { data: userData } = await supabase.auth.getUser()
+        if (!userData.user) {
+            set({ loading: false })
+            return null
+        }
+
+        // Fetch user's board
+        const { data: boardsData, error: boardsError } = await supabase
+            .from('boards')
+            .select('*, lists(*, cards(*))')
+            .eq('user_id', userData.user.id)
+            .order('created_at', { ascending: true })
+            .limit(1)
+
+        if (boardsError) {
+            console.error('Error fetching boards:', boardsError)
+            set({ loading: false })
+            return null
+        }
+
+        let board: Board | null = null
+
+        if (boardsData && boardsData.length > 0) {
+            // User has a board, format it
+            const rawBoard = boardsData[0]
+            board = {
+                ...rawBoard,
+                lists: (rawBoard.lists || []).sort((a: any, b: any) => a.position - b.position).map((list: any) => ({
+                    ...list,
+                    cards: (list.cards || []).sort((a: any, b: any) => a.position - b.position)
+                }))
+            }
+        } else {
+            // Create a new board for the user
+            const { data: newBoard, error: createError } = await supabase
+                .from('boards')
+                .insert({ 
+                    title: 'เทมเพลตของฉัน', 
+                    user_id: userData.user.id 
+                })
+                .select()
+                .single()
+
+            if (createError) {
+                console.error('Error creating board:', createError)
+                set({ loading: false })
+                return null
+            }
+
+            board = { ...newBoard, lists: [] }
+        }
+
+        set({ boards: board ? [board] : [], activeBoard: board, loading: false })
+        return board
+    },
+
+    addBoard: async (title, color) => {
         if (!supabase) return
         const { data: userData } = await supabase.auth.getUser()
         if (!userData.user) return
 
         const { data, error } = await supabase
             .from('boards')
-            .insert({ title, user_id: userData.user.id })
+            .insert({ title, user_id: userData.user.id, color: color || null })
             .select()
             .single()
 
@@ -120,7 +185,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         }
     },
 
-    addCard: async (listId, content) => {
+    addCard: async (listId, content, color) => {
         if (!supabase) return
 
         // Find current max position in this list
@@ -132,7 +197,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
 
         const { data, error } = await supabase
             .from('cards')
-            .insert({ list_id: listId, content, position })
+            .insert({ list_id: listId, content, position, color: color || null })
             .select()
             .single()
 
@@ -262,16 +327,32 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         await supabase.from('boards').delete().eq('id', boardId)
     },
 
-    updateBoard: async (boardId, title) => {
+    updateBoard: async (boardId, title, color) => {
         if (!supabase) return
 
         // Optimistic update
         set((state) => ({
-            boards: state.boards.map(b => b.id === boardId ? { ...b, title } : b),
-            activeBoard: state.activeBoard?.id === boardId ? { ...state.activeBoard, title } : state.activeBoard
+            boards: state.boards.map(b => b.id === boardId ? { ...b, title, ...(color !== undefined && { color }) } : b),
+            activeBoard: state.activeBoard?.id === boardId ? { ...state.activeBoard, title, ...(color !== undefined && { color }) } : state.activeBoard
         }))
 
-        await supabase.from('boards').update({ title }).eq('id', boardId)
+        const updateData: { title: string; color?: string | null } = { title }
+        if (color !== undefined) {
+            updateData.color = color || null
+        }
+        await supabase.from('boards').update(updateData).eq('id', boardId)
+    },
+
+    updateBoardColor: async (boardId, color) => {
+        if (!supabase) return
+
+        // Optimistic update
+        set((state) => ({
+            boards: state.boards.map(b => b.id === boardId ? { ...b, color } : b),
+            activeBoard: state.activeBoard?.id === boardId ? { ...state.activeBoard, color } : state.activeBoard
+        }))
+
+        await supabase.from('boards').update({ color: color || null }).eq('id', boardId)
     },
 
     deleteList: async (listId) => {
@@ -328,7 +409,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
         await supabase.from('cards').delete().eq('id', cardId)
     },
 
-    updateCard: async (cardId, content) => {
+    updateCard: async (cardId, content, color) => {
         if (!supabase) return
 
         set((state) => {
@@ -336,7 +417,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
                 ...b,
                 lists: b.lists.map(l => ({
                     ...l,
-                    cards: l.cards.map(c => c.id === cardId ? { ...c, content } : c)
+                    cards: l.cards.map(c => c.id === cardId ? { ...c, content, ...(color !== undefined && { color }) } : c)
                 }))
             }))
             return {
@@ -345,6 +426,30 @@ export const useBoardStore = create<BoardState>((set, get) => ({
             }
         })
 
-        await supabase.from('cards').update({ content }).eq('id', cardId)
+        const updateData: { content: string; color?: string | null } = { content }
+        if (color !== undefined) {
+            updateData.color = color || null
+        }
+        await supabase.from('cards').update(updateData).eq('id', cardId)
+    },
+
+    updateCardColor: async (cardId, color) => {
+        if (!supabase) return
+
+        set((state) => {
+            const updatedBoards = state.boards.map(b => ({
+                ...b,
+                lists: b.lists.map(l => ({
+                    ...l,
+                    cards: l.cards.map(c => c.id === cardId ? { ...c, color } : c)
+                }))
+            }))
+            return {
+                boards: updatedBoards,
+                activeBoard: state.activeBoard ? updatedBoards.find(b => b.id === state.activeBoard?.id) || null : null
+            }
+        })
+
+        await supabase.from('cards').update({ color: color || null }).eq('id', cardId)
     }
 }))

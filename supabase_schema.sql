@@ -3,6 +3,7 @@ create table boards (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users not null,
   title text not null,
+  color text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -19,6 +20,7 @@ create table cards (
   list_id uuid references lists on delete cascade not null,
   content text not null,
   position integer not null default 0,
+  color text,
   variables jsonb default '{}'::jsonb,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
