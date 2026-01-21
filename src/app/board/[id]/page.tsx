@@ -53,7 +53,7 @@ export default function BoardPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Loading board...</p>
+          <p className="text-muted-foreground text-lg">กำลังโหลดข้อมูล...</p>
         </div>
       </div>
     )
@@ -63,9 +63,9 @@ export default function BoardPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-4">
-          <p className="text-xl font-semibold">Board not found</p>
+          <p className="text-2xl font-semibold">ไม่พบกระดานนี้</p>
           <Link href="/">
-            <Button variant="outline">Back to Dashboard</Button>
+            <Button variant="outline" size="lg" className="text-lg">กลับหน้าหลัก</Button>
           </Link>
         </div>
       </div>
@@ -86,30 +86,31 @@ export default function BoardPage() {
         
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button variant="secondary" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add List
+            <Button variant="secondary" size="lg" className="gap-2 text-lg shadow-sm">
+              <Plus className="h-5 w-5" />
+              เพิ่มรายการ
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Add New List</DialogTitle>
+              <DialogTitle className="text-2xl">เพิ่มรายการใหม่</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="list-title">List Title</Label>
+                <Label htmlFor="list-title" className="text-lg">ชื่อรายการ</Label>
                 <Input
                   id="list-title"
-                  placeholder="e.g. Work Emails"
+                  placeholder="เช่น: อีเมลงาน, โน้ตย่อ"
+                  className="text-lg h-12"
                   value={newListTitle}
                   onChange={(e) => setNewListTitle(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleAddList()}
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddList}>Add</Button>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" size="lg" onClick={() => setOpen(false)}>ยกเลิก</Button>
+              <Button size="lg" onClick={handleAddList}>เพิ่ม</Button>
             </div>
           </DialogContent>
         </Dialog>

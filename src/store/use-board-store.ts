@@ -38,6 +38,12 @@ interface BoardState {
     reorderLists: (boardId: string, startIndex: number, endIndex: number) => Promise<void>
     reorderCards: (listId: string, startIndex: number, endIndex: number) => Promise<void>
     moveCard: (sourceListId: string, destListId: string, cardId: string, index: number) => Promise<void>
+    deleteBoard: (boardId: string) => Promise<void>
+    updateBoard: (boardId: string, title: string) => Promise<void>
+    deleteList: (listId: string) => Promise<void>
+    updateList: (listId: string, title: string) => Promise<void>
+    deleteCard: (cardId: string) => Promise<void>
+    updateCard: (cardId: string, content: string) => Promise<void>
 }
 
 export const useBoardStore = create<BoardState>((set, get) => ({
@@ -242,5 +248,103 @@ export const useBoardStore = create<BoardState>((set, get) => ({
 
         // We should probably re-order the destination list too to be safe, 
         // but the update above handles the primary change.
+    },
+
+    deleteBoard: async (boardId) => {
+        if (!supabase) return
+
+        // Optimistic update
+        set((state) => ({
+            boards: state.boards.filter(b => b.id !== boardId),
+            activeBoard: state.activeBoard?.id === boardId ? null : state.activeBoard
+        }))
+
+        await supabase.from('boards').delete().eq('id', boardId)
+    },
+
+    updateBoard: async (boardId, title) => {
+        if (!supabase) return
+
+        // Optimistic update
+        set((state) => ({
+            boards: state.boards.map(b => b.id === boardId ? { ...b, title } : b),
+            activeBoard: state.activeBoard?.id === boardId ? { ...state.activeBoard, title } : state.activeBoard
+        }))
+
+        await supabase.from('boards').update({ title }).eq('id', boardId)
+    },
+
+    deleteList: async (listId) => {
+        if (!supabase) return
+
+        set((state) => {
+            const updatedBoards = state.boards.map(b => ({
+                ...b,
+                lists: b.lists.filter(l => l.id !== listId)
+            }))
+            return {
+                boards: updatedBoards,
+                activeBoard: state.activeBoard ? updatedBoards.find(b => b.id === state.activeBoard?.id) || null : null
+            }
+        })
+
+        await supabase.from('lists').delete().eq('id', listId)
+    },
+
+    updateList: async (listId, title) => {
+        if (!supabase) return
+
+        set((state) => {
+            const updatedBoards = state.boards.map(b => ({
+                ...b,
+                lists: b.lists.map(l => l.id === listId ? { ...l, title } : l)
+            }))
+            return {
+                boards: updatedBoards,
+                activeBoard: state.activeBoard ? updatedBoards.find(b => b.id === state.activeBoard?.id) || null : null
+            }
+        })
+
+        await supabase.from('lists').update({ title }).eq('id', listId)
+    },
+
+    deleteCard: async (cardId) => {
+        if (!supabase) return
+
+        set((state) => {
+            const updatedBoards = state.boards.map(b => ({
+                ...b,
+                lists: b.lists.map(l => ({
+                    ...l,
+                    cards: l.cards.filter(c => c.id !== cardId)
+                }))
+            }))
+            return {
+                boards: updatedBoards,
+                activeBoard: state.activeBoard ? updatedBoards.find(b => b.id === state.activeBoard?.id) || null : null
+            }
+        })
+
+        await supabase.from('cards').delete().eq('id', cardId)
+    },
+
+    updateCard: async (cardId, content) => {
+        if (!supabase) return
+
+        set((state) => {
+            const updatedBoards = state.boards.map(b => ({
+                ...b,
+                lists: b.lists.map(l => ({
+                    ...l,
+                    cards: l.cards.map(c => c.id === cardId ? { ...c, content } : c)
+                }))
+            }))
+            return {
+                boards: updatedBoards,
+                activeBoard: state.activeBoard ? updatedBoards.find(b => b.id === state.activeBoard?.id) || null : null
+            }
+        })
+
+        await supabase.from('cards').update({ content }).eq('id', cardId)
     }
 }))

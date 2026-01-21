@@ -43,8 +43,8 @@ export function UserNav() {
 
   if (!user) {
     return (
-      <Button variant="ghost" onClick={() => router.push("/login")}>
-        Sign In
+      <Button variant="ghost" onClick={() => router.push("/login")} className="text-base">
+        เข้าสู่ระบบ
       </Button>
     )
   }
@@ -65,8 +65,8 @@ export function UserNav() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut}>
-          Sign Out
+        <DropdownMenuItem onClick={handleSignOut} className="text-red-500 focus:text-red-500 font-medium">
+          ออกจากระบบ
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

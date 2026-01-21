@@ -41,39 +41,45 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center p-4 w-1/2">
-      <Card className="w-full max-w-md glass">
-        <CardHeader>
-          <CardTitle className="text-2xl">Welcome to Esycopify</CardTitle>
-          <CardDescription>Sign in or create an account to start managing templates.</CardDescription>
+      <Card className="w-full max-w-lg glass shadow-2xl border-t-white/20">
+        <CardHeader className="space-y-2">
+          <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+            ยินดีต้อนรับสู่ Esycopify
+          </CardTitle>
+          <CardDescription className="text-center text-lg">
+            เข้าสู่ระบบหรือสร้างบัญชีใหม่เพื่อเริ่มจัดการเทมเพลตของคุณ
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {error && <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{error}</p>}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+        <CardContent className="space-y-6">
+          {error && <p className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg text-center font-medium">{error}</p>}
+          <div className="space-y-3">
+            <Label htmlFor="email" className="text-lg">อีเมล</Label>
             <Input 
               id="email" 
               type="email" 
-              placeholder="you@example.com" 
+              placeholder="name@example.com" 
+              className="h-12 text-lg"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+          <div className="space-y-3">
+            <Label htmlFor="password"className="text-lg">รหัสผ่าน</Label>
             <Input 
               id="password" 
               type="password" 
+              className="h-12 text-lg"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col gap-2">
-          <Button className="w-full" onClick={() => handleAuth('login')} disabled={loading}>
-            {loading ? "Authenticating..." : "Sign In"}
+        <CardFooter className="flex flex-col gap-3 pt-2">
+          <Button size="lg" className="w-full text-lg shadow-lg hover:shadow-primary/20" onClick={() => handleAuth('login')} disabled={loading}>
+            {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
           </Button>
-          <Button variant="outline" className="w-full" onClick={() => handleAuth('signup')} disabled={loading}>
-            Create Account
+          <Button variant="outline" size="lg" className="w-full text-lg" onClick={() => handleAuth('signup')} disabled={loading}>
+            สร้างบัญชีใหม่
           </Button>
         </CardFooter>
       </Card>
