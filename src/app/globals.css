@@ -1,6 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Athiti:wght@200;300;400;500;600;700&family=Noto+Sans+Thai:wght@100..900&family=Playpen+Sans+Thai:wght@100..800&display=swap');
 @import "tailwindcss";
 
 @theme {
+  --font-sans: "Noto Sans Thai", "Athiti", sans-serif;
+  --font-display: "Playpen Sans Thai", "Noto Sans Thai", sans-serif;
   --color-background: hsl(0 0% 100%);
   --color-foreground: hsl(222.2 84% 4.9%);
   --color-card: hsl(0 0% 100%);
@@ -30,6 +33,11 @@
 
   body {
     @apply bg-background text-foreground transition-colors duration-300;
+    font-family: "Noto Sans Thai", "Athiti", sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Playpen Sans Thai", "Noto Sans Thai", sans-serif;
   }
 }
 

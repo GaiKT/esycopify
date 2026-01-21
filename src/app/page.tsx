@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useBoardStore } from "@/store/use-board-store";
 import { Button } from "@/components/ui/button";
-import { Palette, Sparkles } from "lucide-react";
+import { Palette, Sparkles, Pencil } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { ColorPicker } from "@/components/ui/color-picker";
 import {
   Popover,
@@ -11,17 +12,52 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { BoardCanvas } from "@/components/board/board-canvas";
+import { TutorialDialog } from "@/components/tutorial-dialog";
 import { cn } from "@/lib/utils";
 
 export default function MainPage() {
-  const { activeBoard, fetchOrCreateBoard, updateBoardColor, loading } =
-    useBoardStore();
+  const {
+    activeBoard,
+    fetchOrCreateBoard,
+    updateBoard,
+    updateBoardColor,
+    loading,
+  } = useBoardStore();
   const [isMounted, setIsMounted] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setIsMounted(true);
     fetchOrCreateBoard();
   }, [fetchOrCreateBoard]);
+
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [isEditingTitle]);
+
+  const handleStartEditTitle = () => {
+    if (activeBoard) {
+      setEditTitle(activeBoard.title);
+      setIsEditingTitle(true);
+    }
+  };
+
+  const handleSaveTitle = () => {
+    if (activeBoard && editTitle.trim() && editTitle !== activeBoard.title) {
+      updateBoard(activeBoard.id, editTitle.trim(), activeBoard.color);
+    }
+    setIsEditingTitle(false);
+  };
+
+  const handleCancelEditTitle = () => {
+    setIsEditingTitle(false);
+    setEditTitle("");
+  };
 
   // Loading state
   if (!isMounted || loading) {
@@ -76,16 +112,38 @@ export default function MainPage() {
       >
         <div className="flex items-center gap-4">
           <div>
-            <h2
-              className={cn(
-                "text-2xl font-bold",
-                activeBoard.color
-                  ? "text-slate-800 dark:text-white drop-shadow-sm"
-                  : "",
-              )}
-            >
-              {activeBoard.title}
-            </h2>
+            {isEditingTitle ? (
+              <Input
+                ref={titleInputRef}
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                onBlur={handleSaveTitle}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSaveTitle();
+                  if (e.key === "Escape") handleCancelEditTitle();
+                }}
+                className={cn(
+                  "text-2xl font-bold h-10 px-2 -ml-2",
+                  activeBoard.color
+                    ? "bg-white/50 border-white/50"
+                    : "bg-white dark:bg-slate-900",
+                )}
+              />
+            ) : (
+              <h2
+                onClick={handleStartEditTitle}
+                className={cn(
+                  "text-2xl font-bold cursor-pointer hover:opacity-70 transition-opacity group flex items-center gap-2",
+                  activeBoard.color
+                    ? "text-slate-800 dark:text-white drop-shadow-sm"
+                    : "",
+                )}
+                title="คลิกเพื่อแก้ไขชื่อ"
+              >
+                {activeBoard.title}
+                <Pencil className="h-4 w-4 opacity-0 group-hover:opacity-50 transition-opacity" />
+              </h2>
+            )}
             <p
               className={cn(
                 "text-sm",
@@ -101,32 +159,36 @@ export default function MainPage() {
           </div>
         </div>
 
-        {/* Color Picker */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              className={cn(
-                "rounded-full",
-                activeBoard.color
-                  ? "bg-white/50 hover:bg-white/70 border-white/50 dark:bg-black/30 dark:hover:bg-black/40 dark:border-white/20"
-                  : "",
-              )}
-            >
-              <Palette className="h-4 w-4" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto" align="end">
-            <div className="space-y-3">
-              <h4 className="font-medium text-sm">เปลี่ยนสีพื้นหลัง</h4>
-              <ColorPicker
-                value={activeBoard.color}
-                onChange={(color) => updateBoardColor(activeBoard.id, color)}
-              />
-            </div>
-          </PopoverContent>
-        </Popover>
+        {/* Help & Color Picker */}
+        <div className="flex items-center gap-2">
+          <TutorialDialog />
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className={cn(
+                  "rounded-full",
+                  activeBoard.color
+                    ? "bg-white/50 hover:bg-white/70 border-white/50 dark:bg-black/30 dark:hover:bg-black/40 dark:border-white/20"
+                    : "",
+                )}
+              >
+                <Palette className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto" align="end">
+              <div className="space-y-3">
+                <h4 className="font-medium text-sm">เปลี่ยนสีพื้นหลัง</h4>
+                <ColorPicker
+                  value={activeBoard.color}
+                  onChange={(color) => updateBoardColor(activeBoard.id, color)}
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       {/* Board Canvas */}
